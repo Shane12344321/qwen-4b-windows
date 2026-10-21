@@ -1,0 +1,22 @@
+name: Package Windows model
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned model and verify
+        run: |
+          curl --fail --location --retry 5 --output Qwen3.5-4B.exe 'https://huggingface.co/mozilla-ai/llamafile_0.10/resolve/8c9e234f2068fa6a6f3ed171926b367e65cef160/Qwen3.5-4B-Q5_K_S.llamafile'
+          echo '5eb74a4b498a41a78e52ada02e74269048bb35b66b6710ba0b63a606013f4831  Qwen3.5-4B.exe' | sha256sum --check
+          split -b 1900000000 Qwen3.5-4B.exe Qwen3.5-4B.exe.part-
+          sha256sum Qwen3.5-4B.exe Qwen3.5-4B.exe.part-* > SHA256SUMS.txt
+      - name: Publish model parts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create qwen3.5-4b-q5ks Qwen3.5-4B.exe.part-* assemble-and-run.cmd SHA256SUMS.txt --title 'Qwen3.5 4B standalone for Windows' --notes-file README.md
